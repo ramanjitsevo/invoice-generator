@@ -18,6 +18,7 @@ class InvoiceForm extends React.Component {
       currentDate: '',
       invoiceNumber: 1,
       dateOfIssue: '',
+      items:[],
       billTo: '',
       billToEmail: '',
       billToAddress: '',
@@ -42,6 +43,7 @@ class InvoiceForm extends React.Component {
       }
     ];
     this.editField = this.editField.bind(this);
+    this.handleCalculateTotal = this.handleCalculateTotal.bind(this);
   }
   componentDidMount(prevProps) {
     this.handleCalculateTotal()
@@ -64,30 +66,35 @@ class InvoiceForm extends React.Component {
     this.setState(this.state.items);
   }
   handleCalculateTotal() {
-    var items = this.state.items;
-    var subTotal = 0;
-
-    items.map(function(items) {
-      subTotal = parseFloat(subTotal + (parseFloat(items.price).toFixed(2) * parseInt(items.quantity))).toFixed(2)
+    
+    const items = this.state.items;
+  
+    let subTotal = 0;
+  
+    items.forEach((item) => {
+      const price = parseFloat(item.price) || 0;
+      const quantity = parseInt(item.quantity) || 0;
+      subTotal += price * quantity;
     });
-
+  
+    // Round subtotal AFTER calculation
+    subTotal = parseFloat(subTotal.toFixed(2));
+  
     this.setState({
-      subTotal: parseFloat(subTotal).toFixed(2)
+      subTotal: subTotal
     }, () => {
+      const taxAmount = parseFloat((subTotal * (this.state.taxRate / 100)).toFixed(2));
+      const discountAmount = parseFloat((subTotal * (this.state.discountRate / 100)).toFixed(2));
+      const total = parseFloat((subTotal - discountAmount + taxAmount).toFixed(2));
+  
       this.setState({
-        taxAmmount: parseFloat(parseFloat(subTotal) * (this.state.taxRate / 100)).toFixed(2)
-      }, () => {
-        this.setState({
-          discountAmmount: parseFloat(parseFloat(subTotal) * (this.state.discountRate / 100)).toFixed(2)
-        }, () => {
-          this.setState({
-            total: ((subTotal - this.state.discountAmmount) + parseFloat(this.state.taxAmmount))
-          });
-        });
+        taxAmmount: taxAmount,
+        discountAmmount: discountAmount,
+        total: total
       });
     });
-
-  };
+  }
+  
   onItemizedItemEdit(evt) {
     var item = {
       id: evt.target.id,
@@ -163,7 +170,7 @@ class InvoiceForm extends React.Component {
                 <Form.Control placeholder={"Billing address"} value={this.state.billFromAddress} type="text" name="billFromAddress" className="my-2" autoComplete="address" onChange={(event) => this.editField(event)} required="required"/>
               </Col>
             </Row>
-            <InvoiceItem onItemizedItemEdit={this.onItemizedItemEdit.bind(this)} onRowAdd={this.handleAddEvent.bind(this)} onRowDel={this.handleRowDel.bind(this)} currency={this.state.currency} items={this.state.items}/>
+            <InvoiceItem onItemizedItemEdit={this.onItemizedItemEdit.bind(this)} onRowAdd={this.handleAddEvent.bind(this)} onRowDel={this.handleRowDel.bind(this)} currency={this.state.currency} handleCalculateTotal={this.handleCalculateTotal} items={this.state.items}/>
             <Row className="mt-4 justify-content-end">
               <Col lg={6}>
                 <div className="d-flex flex-row align-items-start justify-content-between">
